@@ -1,1 +1,0 @@
-# MedKit Diagnose package

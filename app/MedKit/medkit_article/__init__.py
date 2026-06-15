@@ -1,1 +1,0 @@
-# MedKit Article Tools Package

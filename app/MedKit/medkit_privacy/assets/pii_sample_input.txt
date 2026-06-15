@@ -1,9 +1,0 @@
-Patient intake for Alexander J. Hamilton-Smythe (DOB: 07/04/1776).
-Patient reports experiencing anxiety symptoms since Jan 2026.
-Living at 456 Wall St, Springfield, IL 62704.
-Contact: alex.hamilton@us_treasury.gov or 555-123-4567.
-Medical Record Number: MRN-987654321.
-SSN: 999-00-1111.
-Insurance Policy: BCBS-A1B2C3D4E5.
-IP Address recorded during session: 192.168.1.45.
-Subject is 92 years old.

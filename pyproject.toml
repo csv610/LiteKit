@@ -1,0 +1,79 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta:__legacy__"
+
+[project]
+name = "litekit"
+dynamic = ["version"]
+description = "An unofficial, opinionated toolkit for LiteLLM (BerriAI) with vision and evaluation support."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Chaman Singh Verma" },
+]
+requires-python = ">=3.8"
+dependencies = [
+    "litellm>=1.81",
+    "streamlit>=1.53.0",
+    "pytest>=7.4.0",
+    "python-dotenv>=1.0.0",
+    "Pillow>=10.0.0",
+    "pydantic>=2.12",
+    "opencv-python",
+    "numpy",
+    "lmdb",
+    "google-genai",
+    "requests",
+    "tqdm",
+    "typing-extensions",
+    "rich",
+    "dspy-ai>=2.5.12",
+    "agno",
+    "langchain",
+    "langchain-google-genai",
+    "langchain-openai",
+    "langchain-ollama",
+    "langgraph",
+]
+
+[project.urls]
+Homepage = "https://github.com/csv610/LiteKit"
+Repository = "https://github.com/csv610/LiteKit"
+
+[project.scripts]
+cli-litetext = "app.cli.liteclient_cli:main_cli"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov",
+    "pylint",
+    "black",
+    "ruff",
+]
+
+[tool.setuptools.packages.find]
+include = ["litekit", "litekit.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py38", "py39", "py310", "py311", "py312"]
+
+[tool.setuptools.dynamic]
+version = {attr = "litekit.__version__"}
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP"]
+
+[tool.pylint]
+py-version = "3.8"

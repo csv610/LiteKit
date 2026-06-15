@@ -1,458 +1,252 @@
 # LiteKit
 
-A unified command-line interface for accessing multiple language model providers through a single client. Supports text generation, image analysis, and specialized medical information tools.
-
-## Why Use LiteKit
-
-### **Unified Access to Multiple AI Providers**
-- Single interface for OpenAI, Anthropic, Google Gemini, Ollama, and other providers
-- Switch between models without changing code or learning different APIs
-- Consistent response format across all providers
-
-### **Medical Information Tools (MedKit)**
-- 19 specialized medical recognizers for disease, symptom, and drug identification
-- Drug interaction checking and medical reference information
-- Clinical decision support tools for healthcare professionals
-
-### **Specialized Content Tools**
-- Article analysis and improvement
-- FAQ generation from existing content
-- Educational content creation and tutoring systems
-- Medical terminology extraction and validation
-
-### **Cost and Performance Optimization**
-- Local model support with Ollama (no API costs)
-- Provider selection based on cost, speed, or capability requirements
-- Structured output with Pydantic models for type-safe responses
-
-## Quick Start
-
-### **Basic Usage**
-```bash
-# Text generation
-python app/cli/liteclient_cli.py -q "Explain machine learning concepts"
-
-# Image analysis
-python app/cli/liteclient_cli.py -i image.jpg -q "Describe this image"
-
-# Model selection
-python app/cli/liteclient_cli.py -q "Write Python code" -m "gpt-4"
-```
-
-### **Medical Tools**
-```bash
-# Disease identification
-python app/MedKit/recognizers/disease/disease_identifier_cli.py "diabetes mellitus"
-
-# Drug interaction check
-python app/MedKit/drug/drug_drug/drug_drug_interaction_cli.py --drug1 "aspirin" --drug2 "warfarin"
-
-# Medical symptom recognition
-python app/MedKit/recognizers/medical_symptom/medical_symptom_cli.py "chest pain"
-```
-
-### **Content Tools**
-```bash
-# Article review
-python app/ArticleReviewer/article_reviewer_cli.py "your article text here"
-
-# FAQ generation
-python app/FAQGenerator/faq_generator_cli.py -i "your content text here"
-
-# Educational tutoring (interactive)
-python app/FeymannTutor/feymann_tutor.py
-```
+An unofficial, opinionated Python toolkit built on top of [LiteLLM (BerriAI)](https://github.com/BerriAI/litellm) that provides a unified client for text generation, vision analysis, multi-turn chat, MCQ solving, LLM-as-a-judge evaluation, image processing, and LMDB-backed storage.
 
 ## Installation
 
-### **Standard Installation**
 ```bash
 git clone https://github.com/csv610/LiteKit.git
 cd LiteKit
-pip install -r requirements.txt
 pip install -e .
 ```
 
-### **API Configuration**
+Or with dev dependencies:
+
 ```bash
-# Optional: Configure API keys for cloud providers
-export OPENAI_API_KEY="your-openai-key"
-export GEMINI_API_KEY="your-gemini-key"
-export ANTHROPIC_API_KEY="your-anthropic-key"
+pip install -e ".[dev]"
 ```
 
-### **Local Model Setup**
+### Quick Setup
+
 ```bash
-# Install Ollama for local model access
-curl -fsSL https://ollama.ai/install.sh | sh
-ollama pull llama2
+# Copy and fill in API keys
+cp .env.example .env
+
+# Or export directly
+export OPENAI_API_KEY="your-key"
+export GOOGLE_API_KEY="your-key"
+```
+
+For local models, ensure [Ollama](https://ollama.ai) is running:
+
+```bash
 ollama pull gemma3
 ```
 
 ## Core Components
 
-### **LiteClient Interface**
-- Unified client for text and vision tasks
-- Provider-agnostic API calls
-- Structured output with validation
-- Error handling and retry logic
+### LiteClient
 
-### **MedKit Medical Tools**
-- **Medical Recognizers** (19 modules): Disease, symptom, drug, and medical terminology identification
-- **Drug Information**: Interactions, contraindications, and safety information
-- **Clinical Tools**: Physical examination guides and decision support
-- **Medical Reference**: Disease information, anatomy, and procedures
+Unified text and vision client with retry logic and Pydantic structured output. The primary interface for all LLM interactions.
 
-### **Content Processing Tools**
-- Article analysis and improvement suggestions
-- FAQ generation from source material
-- Educational content creation
-- Medical terminology extraction
+```python
+from litekit import LiteClient, ModelConfig, ModelInput
 
-### **Specialized Utilities**
-- Data extraction and analysis tools
-- Web interface through Streamlit
-- Comprehensive testing framework
-- Automation through Makefile commands
+client = LiteClient()
 
-## Usage Examples
+# Text generation
+result = client.generate_text(
+    ModelInput(user_prompt="Explain quantum computing in simple terms")
+)
 
-### **For General AI Tasks**
+# Vision analysis
+result = client.generate_text(
+    ModelInput(
+        user_prompt="Describe this image",
+        image_path="/path/to/image.jpg"
+    )
+)
+
+# Structured output with Pydantic
+from pydantic import BaseModel
+
+class Recipe(BaseModel):
+    name: str
+    ingredients: list[str]
+    steps: list[str]
+
+result = client.generate_text(
+    ModelInput(
+        user_prompt="Recipe for chocolate cake",
+        response_format=Recipe
+    )
+)
+# result is a validated Recipe instance
+```
+
+### LiteChat
+
+Multi-turn conversational client with history management and auto-save.
+
+```python
+from litekit import LiteChat, ModelConfig, ChatConfig
+
+chat = LiteChat(
+    chat_config=ChatConfig(max_history=10, auto_save=True)
+)
+
+response = chat.generate_text(ModelInput(user_prompt="Hello!"))
+response = chat.generate_text(ModelInput(user_prompt="What did I just say?"))
+# Maintains conversation context
+```
+
+Interactive CLI:
+
 ```bash
-# Research and analysis
-python app/cli/liteclient_cli.py -q "Summarize recent developments in renewable energy"
-
-# Content creation
-python app/cli/liteclient_cli.py -q "Write a technical blog post about cloud computing"
-
-# Problem solving
-python app/cli/liteclient_cli.py -q "Debug this Python code: [code]"
+python -m litekit.lite_chat -m "gemini/gemini-2.0-flash"
 ```
 
-### **For Healthcare Applications**
+### LiteMCQClient
+
+Multiple-choice question solver with structured output.
+
+```python
+from litekit import LiteMCQClient, MCQInput
+
+solver = LiteMCQClient()
+answer = solver.solve(
+    MCQInput(
+        question="What is the capital of France?",
+        options=["London", "Paris", "Berlin", "Madrid"],
+        context="European geography"
+    )
+)
+print(answer.correct_options)  # [CorrectOption(key='B', value='Paris')]
+```
+
+CLI:
+
 ```bash
-# Clinical reference
-python app/MedKit/medical/disease_info/disease_info_cli.py --disease "hypertension"
-
-# Drug safety checks
-python app/MedKit/drug/drug_disease/drug_disease_interaction_cli.py --drug "metformin" --disease "renal impairment"
-
-# Medical education
-python app/MedKit/recognizers/clinical_sign/clinical_sign_cli.py "babinski sign"
+python -m litekit.lite_mcq_client -q "What is 2+2?" -o "3,4,5,6"
 ```
 
-### **For Development and Integration**
+### ResponseJudge
+
+LLM-as-a-judge evaluation engine. Scores responses across four criteria (accuracy, completeness, relevance, clarity) with an overall score and pass/fail判定.
+
+```python
+from litekit import ResponseJudge, UserInput, ModelConfig
+
+judge = ResponseJudge(ModelConfig(model="gpt-4"))
+result = judge.evaluate(
+    UserInput(
+        model_response="Paris is the capital of France.",
+        user_prompt="What is the capital of France?",
+        ground_truth="Paris"
+    )
+)
+print(result.overall_score)  # 0.0 - 1.0
+print(result.is_correct)     # True / False
+```
+
+CLI:
+
 ```bash
-# Code review and improvement
-python app/cli/liteclient_cli.py -q "Review this Python code for security issues"
-
-# Documentation generation
-python app/FAQGenerator/faq_generator_cli.py -i "technical documentation" -n 10
-
-# Data analysis
-python app/cli/liteclient_cli.py -q "Analyze this dataset and provide insights"
+python -m litekit.lite_response_judge -p "What is 2+2?" -r "4"
 ```
 
-## Provider Support
+### Image Utilities
 
-### **Cloud Providers**
-- OpenAI (GPT models)
-- Anthropic (Claude models)
-- Google (Gemini models)
-- Other OpenAI-compatible providers
+Comprehensive image validation, I/O, processing, and collection.
 
-### **Local Models**
-- Ollama integration
-- Custom model endpoints
-- Local deployment options
+```python
+from litekit.vision import (
+    encode_to_base64, get_image_info, save_image,
+    resize_to_max_size, square_image, convert_format,
+    collect_images, auto_orient, crop
+)
 
-### **Model Selection**
+# Encode image for LLM vision
+b64 = encode_to_base64("/path/to/image.jpg")
+
+# Get metadata
+info = get_image_info("/path/to/image.jpg")
+
+# Resize to fit size limit
+resize_to_max_size("large.jpg", max_size=5, size_unit="MB")
+
+# Collect images from directory
+images = collect_images("./photos", recursive=True, formats=["jpg", "png"])
+```
+
+### LMDB Storage
+
+Key-value store with automatic compression and JSON import/export.
+
+```python
+from litekit import LMDBStorage
+
+with LMDBStorage(db_path="/tmp/mydb.lmdb") as db:
+    db.put("key1", "value1")
+    print(db.get("key1"))   # "value1"
+    print(db.num_keys())    # 1
+    db.export_to_json("backup.json")
+```
+
+### Model Evaluation
+
+Benchmark models across text and vision tasks:
+
 ```bash
-# Specify provider and model
-python app/cli/liteclient_cli.py -q "question" -m "openai/gpt-4"
-python app/cli/liteclient_cli.py -q "question" -m "anthropic/claude-3"
-python app/cli/liteclient_cli.py -q "question" -m "ollama/llama2"
+python eval_models.py --mode all --runs 3
 ```
-
-## Output Formats
-
-### **Structured Responses**
-```json
-{
-  "response": "Generated text content",
-  "provider": "openai",
-  "model": "gpt-4",
-  "tokens_used": 150,
-  "response_time": 2.3
-}
-```
-
-### **Medical Recognition Results**
-```json
-{
-  "identification": {
-    "term": "diabetes mellitus",
-    "is_recognized": true,
-    "confidence": "high",
-    "category": "disease"
-  },
-  "data_available": true
-}
-```
-
-## Development and Testing
-
-### **Run Tests**
-```bash
-make test
-```
-
-### **Web Interface**
-```bash
-make run-web
-```
-
-### **Development Setup**
-```bash
-make dev
-```
-
-## Architecture
-
-### **Core Components**
-- `lite/lite_client.py` - Unified client interface
-- `lite/config.py` - Configuration and model management
-- `app/cli/` - Command-line tools and interfaces
-- `app/MedKit/` - Medical information tools
-- `app/web/` - Web interface components
-
-### **Data Models**
-- Pydantic models for structured output
-- Type-safe response validation
-- Consistent data formats across providers
-
-## Limitations and Considerations
-
-### **Medical Tools**
-- Medical information is for reference and educational purposes
-- Not intended for clinical diagnosis or treatment decisions
-- Always verify critical medical information with authoritative sources
-- Consult qualified healthcare professionals for medical decisions
-
-### **AI Model Limitations**
-- Responses may contain inaccuracies or hallucinations
-- Model capabilities vary between providers
-- API rate limits and costs apply to cloud providers
-- Local models require sufficient computational resources
-
-### **Usage Guidelines**
-- Verify important information through primary sources
-- Use appropriate models for specific tasks
-- Consider cost and performance requirements
-- Follow provider terms of service and usage policies
-
-## Support and Documentation
-
-### **Additional Documentation**
-- `app/MedKit/README.md` - Medical tools documentation
-- Module-specific README files in respective directories
-- Contract files for legal and ethical usage terms
-
-### **Technical Support**
-- Check requirements.txt for dependency information
-- Verify Python version compatibility (3.8+)
-- Test with basic commands before complex usage
-- Review API key configuration for cloud providers
-
-### **Contributing**
-- Follow development guidelines in `lite/CONTRIBUTING.md`
-- Run tests before submitting changes
-- Maintain documentation consistency
-- Respect medical AI safety and ethical guidelines
-
-## Extended Setup
-
-1. Create and activate a virtual environment.
-
-**Using standard venv**
-```bash
-make venv
-source litenv/bin/activate
-```
-
-2. Install dependencies.
-
-**Using uv**
-```bash
-uv pip install -r requirements.txt
-uv pip install -e .
-```
-
-**Using make/pip**
-```bash
-make install
-```
-
-3. Set up API keys in a `.env` file or as environment variables.
-```bash
-export OPENAI_API_KEY="your-openai-key"
-export GEMINI_API_KEY="your-gemini-key"
-export ANTHROPIC_API_KEY="your-anthropic-key"
-```
-
-For Ollama models, ensure Ollama is running locally.
 
 ## Project Structure
 
 ```
-LiteLLM/
-├── lite/                        # Core library package
-│   ├── config.py                # Model configuration & input validation
-│   ├── lite_client.py           # Unified client for text/vision operations
-│   ├── image_utils.py           # Image processing and encoding
-│   └── logging_config.py        # Centralized logging
-├── app/                         # Applications layer
-│   ├── cli/                     # Specialized command-line interfaces
-│   │   ├── liteclient_cli.py    # Main unified CLI
-│   │   ├── keyword_extraction.py  # NLP keyword extraction
-│   │   ├── multiple_choice_solver.py  # MCQ solver
-│   │   ├── llm_judge.py  # Response evaluation utilities
-│   │   └── ... (many other specialized tools)
-│   ├── MedKit/                  # Comprehensive Medical Toolkit
-│   │   ├── recognizers/         # 19 medical recognizer modules
-│   │   │   ├── disease/         # Disease identification
-│   │   │   ├── medical_symptom/ # Medical symptom identification
-│   │   │   ├── clinical_sign/   # Clinical sign identification
-│   │   │   ├── lab_unit/        # Laboratory unit identification
-│   │   │   ├── medical_test/     # Medical test identification
-│   │   │   ├── medical_specialty/ # Medical specialty identification
-│   │   │   ├── medication_class/ # Medication class identification
-│   │   │   ├── medical_device/   # Medical device identification
-│   │   │   ├── medical_procedure/ # Medical procedure identification
-│   │   │   ├── medical_vaccine/  # Medical vaccine identification
-│   │   │   ├── medical_condition/ # Medical condition identification
-│   │   │   ├── medical_coding/   # Medical coding identification
-│   │   │   ├── med_abbreviation/ # Medical abbreviation identification
-│   │   │   ├── imaging_finding/  # Imaging finding identification
-│   │   │   ├── genetic_variant/  # Genetic variant identification
-│   │   │   ├── medical_pathogen/ # Medical pathogen identification
-│   │   │   ├── medical_supplement/ # Medical supplement identification
-│   │   │   └── medical_anatomy/  # Medical anatomy identification
-│   │   ├── drug/                # Drug information and interactions
-│   │   ├── medical/             # Disease info, anatomy, procedures
-│   │   ├── phyexams/            # 26+ Physical examination modules
-│   │   ├── mental_health/       # Mental health assessment & reporting
-│   │   └── diagnostics/         # Medical devices and tests
-│   └── web/                     # Web applications
-│       └── streamlit_liteclient.py # Interactive web UI
-├── examples/                    # Example scripts and sample usage
-├── tests/                       # Comprehensive test suite
-├── Makefile                     # Automation for setup, testing, and execution
-└── requirements.txt             # Project dependencies
+LiteKit/
+├── litekit/                     # Core package
+│   ├── __init__.py              # Public API facade
+│   ├── config.py                # ModelConfig, ModelInput, MCQInput, etc.
+│   ├── lite_client.py           # Core LLM client (text + vision)
+│   ├── lite_chat.py             # Multi-turn chat with history
+│   ├── lite_mcq_client.py       # MCQ solver
+│   ├── lite_response_judge.py   # LLM-as-a-judge evaluation
+│   ├── image_utils.py           # Deprecated compat shim → vision/
+│   ├── logging_config.py        # Centralized logging setup
+│   ├── lmdb_storage.py          # LMDB key-value store
+│   ├── vision/                  # Image validation, I/O, processing, collection
+│   │   ├── validation.py
+│   │   ├── io.py
+│   │   ├── processing.py
+│   │   └── collection.py
+│   ├── utils/                   # JSON cleaning, pretty-print, save helpers
+│   │   ├── json_cleaner.py
+│   │   ├── print_response.py
+│   │   └── save_response.py
+│   └── storage/                 # Storage configuration
+│       └── storage_config.py
+├── tests/                       # pytest test suite (17 files)
+├── eval_models.py               # Model evaluation benchmark
+├── pyproject.toml               # Modern Python packaging
+├── setup.py                     # Legacy setup (backward compat)
+├── Makefile                     # Automation
+└── .env.example                 # Environment template
 ```
 
-## Usage
-
-### Unified CLI
-
-The main CLI tool handles both text queries and vision analysis:
+## Development
 
 ```bash
-# Text query
-python app/cli/liteclient_cli.py -q "Explain the benefits of modular software design"
+# Install dev dependencies
+pip install -e ".[dev]"
 
-# Vision analysis
-python app/cli/liteclient_cli.py -i path/to/image.jpg -q "What is shown in this image?"
-
-# Custom model and temperature
-python app/cli/liteclient_cli.py -q "Write a poem about AI" -m "gpt-4" -t 0.8
-```
-
-#### Arguments:
-- `-q, --question`: Input prompt (required for text mode, optional for vision).
-- `-i, --image`: Path or URL to an image file (enables vision mode).
-- `-m, --model`: Model identifier (e.g., `ollama/gemma3`, `gpt-4o`, `gemini/gemini-2.0-flash`).
-- `-t, --temperature`: Sampling temperature (0.0 to 2.0).
-- `-o, --output`: Optional file path to save the response.
-
-### MedKit
-
-MedKit provides specialized medical information tools with 19 recognizer modules for quick medical terminology identification:
-
-#### Medical Recognizers
-
-The recognizers module contains 19 specialized tools for identifying medical terminology:
-
-```bash
-# Disease identification
-python app/MedKit/recognizers/disease/disease_identifier_cli.py "diabetes mellitus"
-
-# Medical symptom identification  
-python app/MedKit/recognizers/medical_symptom/medical_symptom_cli.py "chest pain"
-
-# Clinical sign identification
-python app/MedKit/recognizers/clinical_sign/clinical_sign_cli.py "Babinski sign"
-
-# Laboratory unit identification
-python app/MedKit/recognizers/lab_unit/lab_unit_cli.py "mg/dL"
-
-# Medical test identification
-python app/MedKit/recognizers/medical_test/medical_test_cli.py "CBC"
-
-# Genetic variant identification
-python app/MedKit/recognizers/genetic_variant/genetic_variant_cli.py "BRCA1 mutation"
-
-# Imaging finding identification
-python app/MedKit/recognizers/imaging_finding/imaging_finding_cli.py "pulmonary nodule"
-
-# Medical pathogen identification
-python app/MedKit/recognizers/medical_pathogen/medical_pathogen_cli.py "Staphylococcus aureus"
-
-# And 11 more specialized recognizers...
-```
-
-All recognizers support:
-- `--model`: Model selection (default: ollama/gemma3)
-- `--temperature`: Temperature control (default: 0.2)
-
-#### Traditional MedKit Modules
-
-```bash
-# Get disease information
-python app/MedKit/medical/disease_info/disease_info_cli.py --disease "Diabetes"
-
-# Check drug information
-python app/MedKit/drug/medicine/medicine_cli.py -i "Aspirin"
-
-# Run a physical exam module
-python app/MedKit/phyexams/exam_depression_screening.py
-```
-
-See [app/MedKit/README.md](app/MedKit/README.md) for more details.
-
-### Streamlit Web UI
-
-Launch the interactive web interface:
-
-```bash
-make run-web
-```
-
-## Architecture
-
-### LiteClient (`lite/lite_client.py`)
-The core `LiteClient` provides a unified interface for all model interactions. It abstracts the complexities of different providers and handles message formatting for both text and multimodal (vision) inputs.
-
-### Structured Output
-The library leverages Pydantic for structured data extraction. By passing a Pydantic model to `generate_text`, you can ensure the LLM response is validated and parsed into a Python object.
-
-## Testing
-
-Run the full test suite using the Makefile:
-```bash
+# Run tests
 make test
+
+# Or directly
+python -m pytest tests/ -v
+
+# Lint and format
+pylint litekit/ tests/
+black litekit/ tests/
+ruff check litekit/ tests/
 ```
+
+## Requirements
+
+- Python 3.8+
+- An API key for at least one provider (OpenAI, Google Gemini, Anthropic) or a local Ollama instance
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT
